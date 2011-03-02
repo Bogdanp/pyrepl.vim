@@ -55,12 +55,23 @@ fun! s:StartREPL()
     map <buffer><silent><CR> :call <SID>Eval()<CR>
     imap <buffer><silent><CR> :call <SID>Eval()<CR>G
     normal ggdGi>>> 
-    python globals_, locals_ = {}, {}
+    python <<EOF
+import code
+import cStringIO
+import os
+import sys
+import traceback
+import vim
+
+if not os.getcwd() in sys.path:
+    sys.path.append(os.getcwd())
+
+globals_, locals_ = {}, {}
+EOF
     echo("PyREPL started.")
 endfun
 
 fun! s:StopREPL()
-    set ft=none
     map <buffer><silent>o o
     map <buffer><silent>O O
     map <buffer><silent><CR> <CR>
@@ -71,31 +82,26 @@ endfun
 
 fun! s:Eval()
     python <<EOF
-import code
-import cStringIO
-import os
-import sys
-import traceback
-import vim
-
 def eval_(line):
-    global globals_, locals_
     vim.command("normal jdG$")
     try:
         eval(code.compile_command(line), globals_, locals_)
     except:
-        for line in traceback.format_exc().splitlines():
+        for i, line in enumerate(traceback.format_exc().splitlines()):
+            # Skip over the first line of the traceback
+            # since it will always refer to this file and
+            # we don't want that.
+            if i == 1:
+                continue
             vim.current.buffer.append(line)
     else:
         if stdout.getvalue():
             vim.current.buffer.append(stdout.getvalue())
     vim.command("normal Go")
 
-sys.path.append(os.getcwd())
 old_stdout = sys.stdout
 sys.stdout = stdout = cStringIO.StringIO()
-line = vim.current.line[3:].strip()
-eval_(line)
+eval_(vim.current.line[3:].strip())
 sys.stdout = old_stdout
 EOF
 endfun
