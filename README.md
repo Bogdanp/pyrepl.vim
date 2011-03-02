@@ -14,8 +14,7 @@ and you're set.
 Usage
 =====
 
-Inside any buffer use `\r` to toggle the REPL on or off. __WARNING__,
-starting the REPL will clear the buffer.
+Inside any buffer use `\r` to toggle the REPL on or off.
 
 Todo
 ====
