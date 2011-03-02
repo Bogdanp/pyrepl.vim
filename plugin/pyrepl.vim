@@ -48,6 +48,7 @@ fun! s:ToggleREPL()
 endfun
 
 fun! s:StartREPL()
+    enew " Create an empty buffer
     set ft=python
     map <buffer><silent>o o>>> 
     map <buffer><silent>O O>>> 
