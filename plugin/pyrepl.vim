@@ -56,7 +56,6 @@ fun! s:StartREPL()
     imap <buffer><silent><CR> :call <SID>Eval()<CR>G
     normal ggdGi>>> 
     python <<EOF
-import code
 import cStringIO
 import os
 import sys
@@ -85,7 +84,7 @@ fun! s:Eval()
 def eval_(line):
     vim.command("normal jdG$")
     try:
-        eval(code.compile_command(line), globals_, locals_)
+        eval(compile(line, "<string>", "single"), globals_, locals_)
     except:
         for i, line in enumerate(traceback.format_exc().splitlines()):
             # Skip over the first line of the traceback
@@ -95,13 +94,18 @@ def eval_(line):
                 continue
             vim.current.buffer.append(line)
     else:
-        if stdout.getvalue():
-            vim.current.buffer.append(stdout.getvalue())
+        value = stdout.getvalue()
+        for line in stdout.getvalue().splitlines():
+            vim.current.buffer.append(line)
     vim.command("normal Go")
 
 old_stdout = sys.stdout
 sys.stdout = stdout = cStringIO.StringIO()
-eval_(vim.current.line[3:].strip())
+line = vim.current.line[3:].strip()
+if line:
+    eval_(line)
+else:
+    vim.command("normal Go")
 sys.stdout = old_stdout
 EOF
 endfun
