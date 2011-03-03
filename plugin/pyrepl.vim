@@ -49,7 +49,7 @@ fun! s:ToggleREPL()
 endfun
 
 fun! s:StartREPL()
-    enew " Create an empty buffer
+    enew
     set ft=python
     map <buffer><silent>o o>>> 
     map <buffer><silent>O O>>> 
@@ -67,8 +67,7 @@ if not os.getcwd() in sys.path:
     sys.path.append(os.getcwd())
 
 globals_, locals_ = {}, {}
-string, block = "", ""
-in_string, in_block = False, False
+block, in_block = "", False
 EOF
     echo("PyREPL started.")
 endfun
@@ -84,11 +83,6 @@ endfun
 
 fun! s:Eval()
     python <<EOF
-def debug(s):
-    sys.stdout = old_stdout
-    print s
-    sys.stdout = stdout
-
 def eval_(string, mode="single"):
     vim.command("normal jdG$")
     try:
@@ -109,28 +103,26 @@ def eval_(string, mode="single"):
 
 def read_block(line):
     global block, in_block
-    if line.endswith(":"):
-        in_block = True
-        block += "\n{}".format(line)
-        vim.command("normal! oI... ")
-        return True
-    if in_block:
-        if not line[0] in (" ", "\t"):
+    if ":" in line and not line.endswith(":"):
+        eval_(line, "exec")
+    elif line.endswith(":") or in_block:
+        if not in_block:
+            in_block = True
+        if not line:
             in_block = False
             eval_(block, "exec")
-            return True   
+            block = ""
+            return False
         block += "\n{}".format(line)
+        vim.command("normal jdG")
         vim.command("normal! oI... ")
         return True
     return False
 
 def read():
     line = vim.current.line[4:]
-    if line:
-        if not read_block(line):
-            eval_(line)
-    else:
-        vim.command("normal Go")
+    if not read_block(line) and line:
+        eval_(line)
 
 old_stdout = sys.stdout
 sys.stdout = stdout = cStringIO.StringIO()
