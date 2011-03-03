@@ -6,7 +6,7 @@ to a Python REPL inside a Vim buffer.
 
 # Example use
 
-You can watch a video of it in action [here](http://www.youtube.com/watch?v=u4qT2BbOHbE).
+You can watch videos of the plugin in action [here](http://www.youtube.com/user/nadgobp#p/u).
 
 #Installation
 
