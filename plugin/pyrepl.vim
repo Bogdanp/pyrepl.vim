@@ -38,6 +38,61 @@ if !hasmapto("<plug>ToggleREPL")
     map <unique><leader>r :call <SID>ToggleREPL()<CR>
 endif
 
+" Python variable and function definitions
+python <<EOF
+import cStringIO
+import os
+import sys
+import traceback
+import vim
+
+globals_, locals_ = {}, {}
+block, in_block = "", False
+
+def eval_(string, mode="single"):
+    """Compiles then evals a given string of code and redirects the
+    output to the current buffer."""
+    vim.command("normal jdG$")
+    try:
+        eval(compile(string, "<string>", mode), globals_, locals_)
+    except:
+        for i, line in enumerate(traceback.format_exc().splitlines()):
+            # Skip over the first line of the traceback since it will
+            # always refer to this file and we don't want that.
+            if i == 1:
+                continue
+            vim.current.buffer.append(line)
+    else:
+        value = stdout.getvalue()
+        for line in stdout.getvalue().splitlines():
+            vim.current.buffer.append(line)
+    vim.command("normal Go")
+
+def read_block(line):
+    """Reads a block to a string line by line.
+    TODO: Nested blocks.
+    """
+    global block, in_block
+    if line.endswith(":") or in_block:
+        if not in_block:
+            in_block = True
+        if not line:
+            in_block = False
+            eval_(block, "exec")
+            block = ""
+            return False
+        block += "\n{}".format(line)
+        vim.command("normal jdG")
+        vim.command("normal! oI... ")
+        return True
+    return False
+
+def readline():
+    line = vim.current.line[4:]
+    if not read_block(line) and line:
+        eval_(line)
+EOF
+
 fun! s:ToggleREPL()
     if exists("s:repl_started")
         call s:StopREPL()
@@ -56,19 +111,6 @@ fun! s:StartREPL()
     map <buffer><silent><CR> :call <SID>Eval()<CR>
     imap <buffer><silent><CR> :call <SID>Eval()<CR>G
     normal ggdGi>>> 
-    python <<EOF
-import cStringIO
-import os
-import sys
-import traceback
-import vim
-
-if not os.getcwd() in sys.path:
-    sys.path.append(os.getcwd())
-
-globals_, locals_ = {}, {}
-block, in_block = "", False
-EOF
     echo("PyREPL started.")
 endfun
 
@@ -83,50 +125,11 @@ endfun
 
 fun! s:Eval()
     python <<EOF
-def eval_(string, mode="single"):
-    vim.command("normal jdG$")
-    try:
-        eval(compile(string, "<string>", mode), globals_, locals_)
-    except:
-        for i, line in enumerate(traceback.format_exc().splitlines()):
-            # Skip over the first line of the traceback
-            # since it will always refer to this file and
-            # we don't want that.
-            if i == 1:
-                continue
-            vim.current.buffer.append(line)
-    else:
-        value = stdout.getvalue()
-        for line in stdout.getvalue().splitlines():
-            vim.current.buffer.append(line)
-    vim.command("normal Go")
-
-def read_block(line):
-    global block, in_block
-    if ":" in line and not line.endswith(":"):
-        eval_(line, "exec")
-    elif line.endswith(":") or in_block:
-        if not in_block:
-            in_block = True
-        if not line:
-            in_block = False
-            eval_(block, "exec")
-            block = ""
-            return False
-        block += "\n{}".format(line)
-        vim.command("normal jdG")
-        vim.command("normal! oI... ")
-        return True
-    return False
-
-def read():
-    line = vim.current.line[4:]
-    if not read_block(line) and line:
-        eval_(line)
-
+if not os.getcwd() in sys.path:
+    sys.path.append(os.getcwd())
 old_stdout = sys.stdout
 sys.stdout = stdout = cStringIO.StringIO()
-read()
+readline()
 sys.stdout = old_stdout
 EOF
 endfun
