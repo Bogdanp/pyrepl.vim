@@ -21,4 +21,4 @@ will create a new empty buffer every single time.
 #Todo
 
     [*] Make the thing work with blocks.
-    [ ] Add support for nested blocks.
+    [*] Add support for nested blocks.
