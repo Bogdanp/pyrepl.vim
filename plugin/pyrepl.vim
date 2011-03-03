@@ -85,20 +85,23 @@ class PyREPL(object):
                 vim.current.buffer.append(line)
         vim.command("normal Go")
 
+    def count_char(self, line, char):
+        """Counts the number of occurences of char from the beginning of
+        the line to the first non-char character in the line."""
+        count = 0
+        for i, c in enumerate(line):
+            if c != char:
+                break
+            count += 1
+        return count
+
     def get_level(self, line):
         "Returns the level of indentation of a given line."
-        level = 0
         if line[0] == " ":
-            for i, c in enumerate(line):
-                if c != " ":
-                    break
-                level += 1
+            return self.count_char(line, " ")
         elif line[0] == "\t":
-            for i, c in enumerate(line):
-                if c != "\t":
-                    break
-                level += 1
-        return level
+            return self.count_char(line, "\t")
+        return 0
 
     def end_of_block(self, line):
         "Checks if the end of a code block was reached."
