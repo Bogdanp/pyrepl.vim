@@ -55,10 +55,9 @@ import vim
 
 class PyREPL(object):
     def __init__(self):
-        self.globals_ = {}
         self.locals_ = {}
         self.block = ""
-        self.in_block = False
+        self.in_block = []
     
     def redirect_stdout(self):
         self.old_stdout = sys.stdout
@@ -72,7 +71,7 @@ class PyREPL(object):
         output to the current buffer."""
         vim.command("normal jdG$")
         try:
-            eval(compile(string, "<string>", mode), self.globals_, self.locals_)
+            eval(compile(string, "<string>", mode), self.locals_, self.locals_)
         except:
             for i, line in enumerate(traceback.format_exc().splitlines()):
                 # Skip over the first line of the traceback since it will
@@ -86,15 +85,39 @@ class PyREPL(object):
                 vim.current.buffer.append(line)
         vim.command("normal Go")
 
+    def get_level(self, line):
+        "Returns the level of indentation of a given line."
+        level = 0
+        if line[0] == " ":
+            for i, c in enumerate(line):
+                if c != " ":
+                    break
+                level += 1
+        elif line[0] == "\t":
+            for i, c in enumerate(line):
+                if c != "\t":
+                    break
+                level += 1
+        return level
+
+    def end_of_block(self, line):
+        "Checks if the end of a code block was reached."
+        if not line:
+            return True
+        try:
+            last_line = self.block.splitlines()[-1]
+        except IndexError:
+            return False
+        return self.get_level(last_line) > self.get_level(line)
+
     def read_block(self, line):
-        """Reads a block to a string line by line.
-        TODO: Nested blocks.
-        """
+        "Reads a block to a string line by line."
+        if line.endswith(":"):
+            self.in_block.append(True)
         if line.endswith(":") or self.in_block:
-            if not self.in_block:
-                self.in_block = True
+            if self.end_of_block(line):
+                self.in_block.pop()
             if not line:
-                self.in_block = False
                 self.eval(self.block, "exec")
                 self.block = ""
                 return False
@@ -105,6 +128,7 @@ class PyREPL(object):
         return False
 
     def readline(self):
+        "Parses the current line for evaluation."
         self.redirect_stdout()
         if not os.getcwd() in sys.path:
             sys.path.append(os.getcwd())
