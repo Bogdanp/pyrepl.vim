@@ -1,5 +1,6 @@
 " ============================================================================
 " File:        pyrepl.vim
+" Version:     0.11
 " Description: Vim plugin that provides a Python REPL inside a buffer.
 " Maintainer:  Bogdan Popa <popa.bogdanp@gmail.com>
 " License:
@@ -66,6 +67,8 @@ if not os.getcwd() in sys.path:
     sys.path.append(os.getcwd())
 
 globals_, locals_ = {}, {}
+string, block = "", ""
+in_string, in_block = False, False
 EOF
     echo("PyREPL started.")
 endfun
@@ -81,10 +84,15 @@ endfun
 
 fun! s:Eval()
     python <<EOF
-def eval_(line):
+def debug(s):
+    sys.stdout = old_stdout
+    print s
+    sys.stdout = stdout
+
+def eval_(string, mode="single"):
     vim.command("normal jdG$")
     try:
-        eval(compile(line, "<string>", "single"), globals_, locals_)
+        eval(compile(string, "<string>", mode), globals_, locals_)
     except:
         for i, line in enumerate(traceback.format_exc().splitlines()):
             # Skip over the first line of the traceback
@@ -99,13 +107,34 @@ def eval_(line):
             vim.current.buffer.append(line)
     vim.command("normal Go")
 
+def read_block(line):
+    global block, in_block
+    if line.endswith(":"):
+        in_block = True
+        block += "\n{}".format(line)
+        vim.command("normal! oI... ")
+        return True
+    if in_block:
+        if not line[0] in (" ", "\t"):
+            in_block = False
+            eval_(block, "exec")
+            return True   
+        block += "\n{}".format(line)
+        vim.command("normal! oI... ")
+        return True
+    return False
+
+def read():
+    line = vim.current.line[4:]
+    if line:
+        if not read_block(line):
+            eval_(line)
+    else:
+        vim.command("normal Go")
+
 old_stdout = sys.stdout
 sys.stdout = stdout = cStringIO.StringIO()
-line = vim.current.line[3:].strip()
-if line:
-    eval_(line)
-else:
-    vim.command("normal Go")
+read()
 sys.stdout = old_stdout
 EOF
 endfun
