@@ -56,8 +56,8 @@ import vim
 class PyREPL(object):
     def __init__(self):
         self.locals_ = {}
-        self.block = ""
-        self.in_block = []
+        self.block = []
+        self.in_block = False
     
     def redirect_stdout(self):
         self.old_stdout = sys.stdout
@@ -65,6 +65,10 @@ class PyREPL(object):
 
     def restore_stdout(self):
         sys.stdout = self.old_stdout
+
+    def update_path(self):
+        if not os.getcwd() in sys.path:
+            sys.path.append(os.getcwd())
 
     def eval(self, string, mode="single"):
         """Compiles then evals a given string of code and redirects the
@@ -95,50 +99,36 @@ class PyREPL(object):
             count += 1
         return count
 
-    def get_level(self, line):
-        "Returns the level of indentation of a given line."
-        if line[0] == " ":
-            return self.count_char(line, " ")
-        elif line[0] == "\t":
-            return self.count_char(line, "\t")
-        return 0
-
-    def end_of_block(self, line):
-        "Checks if the end of a code block was reached."
-        if not line:
-            return True
-        try:
-            last_line = self.block.splitlines()[-1]
-        except IndexError:
-            return False
-        return self.get_level(last_line) > self.get_level(line)
+    def strip_line(self, line):
+        "Strips the line of trailing whitespace."
+        if self.count_char(line, " ") != len(line):
+            return line.rstrip()
+        return line
 
     def read_block(self, line):
         "Reads a block to a string line by line."
         try:
-            lastc = line[-1]
+            if line[-1] in (":", "\\"):
+                self.in_block = True
         except IndexError:
-            lastc = None
-        if lastc in (":", "\\"):
-            self.in_block.append(True)
-        if self.in_block and self.end_of_block(line):
-            self.in_block.pop()
-            if not self.in_block:
-                self.eval(self.block, "exec")
-                self.block = ""
+            pass
+        if self.in_block:
+            if not line:
+                self.eval("\n".join(self.block), "exec")
+                self.block = []
+                self.in_block = False
                 return False
-        if lastc in (":", "\\") or self.in_block:
-            self.block += "\n{}".format(line)
+            self.block.append(line)
             vim.command("normal jdG")
             vim.command("normal! oI... ")
             return True
+        return False
 
     def readline(self):
         "Parses the current line for evaluation."
         self.redirect_stdout()
-        if not os.getcwd() in sys.path:
-            sys.path.append(os.getcwd())
-        line = vim.current.line[4:].rstrip()
+        self.update_path()
+        line = self.strip_line(vim.current.line[4:])
         if not self.read_block(line) and line:
             self.eval(line)
         self.restore_stdout()
