@@ -123,6 +123,7 @@ class PyREPL(object):
             if not line:
                 self.eval(self.block, "exec")
                 self.block = ""
+                self.in_block = []
                 return False
             self.block += "\n{}".format(line)
             vim.command("normal jdG")
@@ -175,7 +176,6 @@ fun! s:StopREPL()
     map <buffer><silent>O O
     map <buffer><silent><CR> <CR>
     imap <buffer><silent><CR> <CR>
-    python del globals_; del locals_
     echo("PyREPL stopped.")
 endfun
 " }}}
