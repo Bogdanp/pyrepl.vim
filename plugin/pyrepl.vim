@@ -115,21 +115,23 @@ class PyREPL(object):
 
     def read_block(self, line):
         "Reads a block to a string line by line."
-        if line.endswith(":"):
+        try:
+            lastc = line[-1]
+        except IndexError:
+            lastc = None
+        if lastc in (":", "\\"):
             self.in_block.append(True)
-        if line.endswith(":") or self.in_block:
-            if self.end_of_block(line):
-                self.in_block.pop()
-            if not line:
+        if self.in_block and self.end_of_block(line):
+            self.in_block.pop()
+            if not self.in_block:
                 self.eval(self.block, "exec")
                 self.block = ""
-                self.in_block = []
                 return False
+        if lastc in (":", "\\") or self.in_block:
             self.block += "\n{}".format(line)
             vim.command("normal jdG")
             vim.command("normal! oI... ")
             return True
-        return False
 
     def readline(self):
         "Parses the current line for evaluation."
@@ -168,6 +170,8 @@ fun! s:StartREPL()
     map <buffer><silent><CR> :python pyrepl.readline()<CR>
     imap <buffer><silent><CR> :python pyrepl.readline()<CR>G
     normal ggdGi>>> 
+    " Disable autoindenting in the repl buffer
+    setl noai nocin nosi inde=
     echo("PyREPL started.")
 endfun
 
