@@ -136,7 +136,7 @@ class PyREPL(object):
         self.redirect_stdout()
         if not os.getcwd() in sys.path:
             sys.path.append(os.getcwd())
-        line = vim.current.line[4:]
+        line = vim.current.line[4:].rstrip()
         if not self.read_block(line) and line:
             self.eval(line)
         self.restore_stdout()
