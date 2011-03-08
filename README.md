@@ -18,7 +18,7 @@ Screencasts:
 Installation
 ============
 
-Use [https://github.com/tpope/vim-pathogen](pathogen) and clone this
+Use [pathogen](https://github.com/tpope/vim-pathogen) and clone this
 repo to your `~/.vim/bundle` directory or copy the `plugin` folder to
 `~/.vim` and you're set.
 
