@@ -39,4 +39,5 @@ Todo
 
     [*] Make the thing work with blocks.
     [*] Add support for nested blocks.
+    [*] Add support for decorators.
     [ ] Add support for multiline strings.

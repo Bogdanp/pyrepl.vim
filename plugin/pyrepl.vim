@@ -1,6 +1,6 @@
 " =======================================================================
 " File:        pyrepl.vim
-" Version:     0.1.2
+" Version:     0.1.3
 " Description: Vim plugin that provides a Python REPL inside a buffer.
 " Maintainer:  Bogdan Popa <popa.bogdanp@gmail.com>
 " License:     Copyright (C) 2011 Bogdan Popa
@@ -34,17 +34,16 @@
 if exists("g:pyrepl_version") || &cp
     finish
 endif
-" }}}
 
 " Version number
-let g:pyrepl_version = "0.1.2"
-
+let g:pyrepl_version = "0.1.3"
+" }}}
 " Check for +python. {{{
 if !has("python")
     echo("Error: PyREPL requires vim compiled with +python.")
+    finish
 endif
 " }}}
-
 " Main code in Python. {{{
 python <<EOF
 import cStringIO
@@ -108,7 +107,8 @@ class PyREPL(object):
     def read_block(self, line):
         "Reads a block to a string line by line."
         try:
-            if line[-1] in (":", "\\"):
+            if line[-1] in (":", "\\")\
+            or line.startswith("@"):
                 self.in_block = True
         except IndexError:
             pass
@@ -136,7 +136,6 @@ class PyREPL(object):
 pyrepl = PyREPL()
 EOF
 " }}}
-
 " Public interface. {{{
 if !hasmapto("<plug>ToggleREPL")
     map <unique><leader>r :call <SID>ToggleREPL()<CR>
@@ -154,14 +153,13 @@ endfun
 
 fun! s:StartREPL()
     enew
-    set ft=python
+    setl ft=python
+    setl noai nocin nosi inde=
+    normal ggdGi>>> 
     map <buffer><silent>o o>>> 
     map <buffer><silent>O O>>> 
-    map <buffer><silent><CR> :python pyrepl.readline()<CR>
-    imap <buffer><silent><CR> :python pyrepl.readline()<CR>G
-    normal ggdGi>>> 
-    " Disable autoindenting in the repl buffer
-    setl noai nocin nosi inde=
+    map <buffer><silent><CR> :python pyrepl.readline()<CR>$
+    imap <buffer><silent><CR> :python pyrepl.readline()<CR>$
     echo("PyREPL started.")
 endfun
 
