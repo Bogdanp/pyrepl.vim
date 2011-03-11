@@ -72,7 +72,7 @@ class PyREPL(object):
     def eval(self, string, mode="single"):
         """Compiles then evals a given string of code and redirects the
         output to the current buffer."""
-        vim.command("normal jdG$")
+        self.clear_lines()
         try:
             eval(compile(string, "<string>", mode), self.locals_, self.locals_)
         except:
@@ -86,7 +86,7 @@ class PyREPL(object):
             value = self.stdout.getvalue()
             for line in self.stdout.getvalue().splitlines():
                 vim.current.buffer.append(line)
-        vim.command("normal Go")
+        self.insert_prompt(True)
 
     def count_char(self, line, char):
         """Counts the number of occurences of char from the beginning of
@@ -98,11 +98,22 @@ class PyREPL(object):
             count += 1
         return count
 
+    def clear_lines(self):
+        "Deletes all the lines below the current one."
+        vim.command("normal! jdG")
+
     def strip_line(self, line):
         "Strips the line of trailing whitespace."
         if self.count_char(line, " ") != len(line):
             return line.rstrip()
         return line
+
+    def insert_prompt(self, not_block=False):
+        "Inserts a prompt at the end of the buffer."
+        if not_block:
+            vim.command("normal! Go>>> $")
+        else:
+            vim.command("normal! Go... $")
 
     def read_block(self, line):
         "Reads a block to a string line by line."
@@ -119,12 +130,12 @@ class PyREPL(object):
                 self.in_block = False
                 return False
             self.block.append(line)
-            vim.command("normal jdG")
-            vim.command("normal! oI... ")
+            self.clear_lines()
+            self.insert_prompt()
             return True
         return False
 
-    def readline(self):
+    def read_line(self):
         "Parses the current line for evaluation."
         self.redirect_stdout()
         self.update_path()
@@ -137,7 +148,7 @@ pyrepl = PyREPL()
 EOF
 " }}}
 " Public interface. {{{
-if !hasmapto("<plug>ToggleREPL")
+if !hasmapto("<SID>ToggleREPL")
     map <unique><leader>r :call <SID>ToggleREPL()<CR>
 endif
 
@@ -155,21 +166,20 @@ fun! s:StartREPL()
     enew
     setl ft=python
     setl noai nocin nosi inde=
-    normal ggdGi>>> 
-    map <buffer><silent>o o>>> 
-    map <buffer><silent>O O>>> 
-    map <buffer><silent><CR> :python pyrepl.readline()<CR>$
-    imap <buffer><silent><CR> :python pyrepl.readline()<CR>$
+    map <buffer><silent><CR> :python pyrepl.read_line()<CR>$
+    imap <buffer><silent><CR> :python pyrepl.read_line()<CR>$
+    normal! i>>> $
     echo("PyREPL started.")
 endfun
 
 fun! s:StopREPL()
-    map <buffer><silent>o o
-    map <buffer><silent>O O
     map <buffer><silent><CR> <CR>
     imap <buffer><silent><CR> <CR>
     echo("PyREPL stopped.")
 endfun
+
+" Expose the Toggle function publicly.
+command! -nargs=0 PyREPLToggle call s:ToggleREPL()
 " }}}
 
 " vim:fdm=marker
