@@ -86,7 +86,7 @@ class PyREPL(object):
             value = self.stdout.getvalue()
             for line in self.stdout.getvalue().splitlines():
                 vim.current.buffer.append(line)
-        self.insert_prompt(True)
+        self.insert_prompt()
 
     def count_char(self, line, char):
         """Counts the number of occurences of char from the beginning of
@@ -108,9 +108,9 @@ class PyREPL(object):
             return line.rstrip()
         return line
 
-    def insert_prompt(self, not_block=False):
+    def insert_prompt(self, block=False):
         "Inserts a prompt at the end of the buffer."
-        if not_block:
+        if not block:
             vim.command("normal! Go>>> $")
         else:
             vim.command("normal! Go... $")
@@ -131,7 +131,7 @@ class PyREPL(object):
                 return False
             self.block.append(line)
             self.clear_lines()
-            self.insert_prompt()
+            self.insert_prompt(True)
             return True
         return False
 
