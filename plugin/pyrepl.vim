@@ -73,7 +73,7 @@ class PyREPL(object):
         "Asks for the name of a module and tries to reload it."
         self.clear_lines()
         self.insert_prompt()
-        vim.command("normal i {0} = reload({0})".format(
+        vim.command("normal! i {0} = reload({0})".format(
             vim.eval("input('Module to reload: ')")
         ))
         self.read_line()
@@ -159,7 +159,6 @@ EOF
 " Public interface. {{{
 if !hasmapto("<SID>ToggleREPL")
     map <unique><leader>r :call <SID>ToggleREPL()<CR>
-    map <unique><leader>R :python pyrepl.reload_module()<CR>
 endif
 
 fun! s:ToggleREPL()
@@ -176,14 +175,15 @@ fun! s:StartREPL()
     enew
     setl ft=python
     setl noai nocin nosi inde=
-    map <buffer><silent><CR> :python pyrepl.read_line()<CR>$
+    map  <buffer><leader>R :python pyrepl.reload_module()<CR>
+    map  <buffer><silent><CR> :python pyrepl.read_line()<CR>$
     imap <buffer><silent><CR> :python pyrepl.read_line()<CR>$
     normal! i>>> $
     echo("PyREPL started.")
 endfun
 
 fun! s:StopREPL()
-    map <buffer><silent><CR> <CR>
+    map  <buffer><silent><CR> <CR>
     imap <buffer><silent><CR> <CR>
     echo("PyREPL stopped.")
 endfun
