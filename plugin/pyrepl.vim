@@ -66,8 +66,17 @@ class PyREPL(object):
         sys.stdout = self.old_stdout
 
     def update_path(self):
-        if not os.getcwd() in sys.path:
+        if os.getcwd() not in sys.path:
             sys.path.append(os.getcwd())
+
+    def reload_module(self):
+        "Asks for the name of a module and tries to reload it."
+        self.clear_lines()
+        self.insert_prompt()
+        vim.command("normal i {0} = reload({0})".format(
+            vim.eval("input('Module to reload: ')")
+        ))
+        self.read_line()
 
     def eval(self, string, mode="single"):
         """Compiles then evals a given string of code and redirects the
@@ -150,6 +159,7 @@ EOF
 " Public interface. {{{
 if !hasmapto("<SID>ToggleREPL")
     map <unique><leader>r :call <SID>ToggleREPL()<CR>
+    map <unique><leader>R :python pyrepl.reload_module()<CR>
 endif
 
 fun! s:ToggleREPL()
