@@ -71,12 +71,17 @@ class PyREPL(object):
 
     def reload_module(self):
         "Asks for the name of a module and tries to reload it."
-        self.clear_lines()
-        self.insert_prompt()
-        vim.command("normal! i {0} = reload({0})".format(
+        if vim.current.line not in (">>> ", "... "):
+            self.clear_lines()
+            self.insert_prompt()
+        vim.command("normal! A{0} = reload({0})".format(
             vim.eval("input('Module to reload: ')")
         ))
         self.read_line()
+
+    def duplicate_line(self):
+        "Copies the current line to the end of the buffer."
+        vim.command("normal! yyGp")
 
     def eval(self, string, mode="single"):
         """Compiles then evals a given string of code and redirects the
@@ -176,6 +181,8 @@ fun! s:StartREPL()
     setl ft=python
     setl noai nocin nosi inde=
     map  <buffer><leader>R :python pyrepl.reload_module()<CR>
+    map  <buffer><silent><S-CR> :python pyrepl.duplicate_line()<CR>$
+    imap <buffer><silent><S-CR> :python pyrepl.duplicate_line()<CR>$
     map  <buffer><silent><CR> :python pyrepl.read_line()<CR>$
     imap <buffer><silent><CR> :python pyrepl.read_line()<CR>$
     normal! i>>> $
@@ -183,6 +190,8 @@ fun! s:StartREPL()
 endfun
 
 fun! s:StopREPL()
+    map  <buffer><silent><S-CR> <S-CR>
+    imap <buffer><silent><S-CR> <S-CR>
     map  <buffer><silent><CR> <CR>
     imap <buffer><silent><CR> <CR>
     echo("PyREPL stopped.")
