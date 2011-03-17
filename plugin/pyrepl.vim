@@ -1,6 +1,6 @@
 " =======================================================================
 " File:        pyrepl.vim
-" Version:     0.1.3
+" Version:     0.1.4
 " Description: Vim plugin that provides a Python REPL inside a buffer.
 " Maintainer:  Bogdan Popa <popa.bogdanp@gmail.com>
 " License:     Copyright (C) 2011 Bogdan Popa
@@ -119,10 +119,10 @@ class PyREPL(object):
 
     def insert_prompt(self, block=False):
         "Inserts a prompt at the end of the buffer."
-        if not block:
-            vim.command("normal! Go>>> $")
-        else:
-            vim.command("normal! Go... $")
+        vim.current.buffer.append(
+            "... " if block else ">>> "
+        )
+        vim.command("normal! G$")
 
     def read_block(self, line):
         "Reads a block to a string line by line."
