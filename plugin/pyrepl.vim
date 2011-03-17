@@ -36,7 +36,7 @@ if exists("g:pyrepl_version") || &cp
 endif
 
 " Version number
-let g:pyrepl_version = "0.1.3"
+let g:pyrepl_version = "0.1.4"
 " }}}
 " Check for +python. {{{
 if !has("python")
