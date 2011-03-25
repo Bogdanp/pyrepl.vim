@@ -58,6 +58,7 @@ class PyREPL(object):
         self.block = []
         self.in_block = False
         self.string_block = False
+        self.tq_literal = None
     
     def redirect_stdout(self):
         self.old_stdout = sys.stdout
@@ -84,8 +85,20 @@ class PyREPL(object):
         "Copies the current line to the end of the buffer."
         vim.command("normal! yyGp")
 
-    def has_ts_literal(self, string):
+    def get_tq_literal(self, string):
+        "Returns the 'type' of the first triple-quote literal in string."
+        sq_pos = string.find("'''")
+        dq_pos = string.find('"""')
+        if sq_pos < dq_pos and sq_pos != -1:
+            return "'''"
+        elif dq_pos != -1:
+            return '"""'
+        return None
+
+    def has_tq_literal(self, string, match=False):
         "Returns True if string contains a triple-quote literal."
+        if match:
+            return self.tq_literal in string
         return '"""' in string or "'''" in string
 
     def insert_prompt(self, block=False):
@@ -140,8 +153,9 @@ class PyREPL(object):
         self.block = []
         self.in_block = False
         self.string_block = False
+        self.tq_literal = None
 
-    def block_append(self, line, prompt=True):
+    def block_append(self, line="", prompt=True):
         "Appends a line to the current block."
         self.block.append(line)
         self.clear_lines()
@@ -149,27 +163,30 @@ class PyREPL(object):
             self.insert_prompt(True)
 
     def read_block(self, line):
-        "Reads a block to a string line by line."
+        "Reads a block of code to a string line by line."
         try:
             if line[-1] in (":", "\\")\
             or line.startswith("@"):
                 self.in_block = True
-            if not self.string_block\
-            and self.has_ts_literal(line):
+            if not self.in_block\
+            and not self.string_block\
+            and self.has_tq_literal(line):
+                self.tq_literal = self.get_tq_literal(line)
                 self.string_block = True
                 self.in_block = True
                 self.block_append(line)
                 return True
         except IndexError:
             pass
-        if self.in_block:
-            if self.string_block and not line:
-                self.block_append("")
-                return True
-            if self.has_ts_literal(line):
+        if self.string_block:
+            if self.has_tq_literal(line, True):
                 self.block_append(line, False)
                 self.eval_block()
-            elif line:
+            else:
+                self.block_append()
+            return True
+        if self.in_block:
+            if line:
                 self.block_append(line)
             else:
                 self.eval_block()
