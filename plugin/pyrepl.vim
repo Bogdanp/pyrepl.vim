@@ -1,6 +1,6 @@
 " =======================================================================
 " File:        pyrepl.vim
-" Version:     0.1.4
+" Version:     0.1.5
 " Description: Vim plugin that provides a Python REPL inside a buffer.
 " Maintainer:  Bogdan Popa <popa.bogdanp@gmail.com>
 " License:     Copyright (C) 2011 Bogdan Popa
@@ -36,7 +36,7 @@ if exists("g:pyrepl_version") || &cp
 endif
 
 " Version number
-let g:pyrepl_version = "0.1.4"
+let g:pyrepl_version = "0.1.5"
 " }}}
 " Check for +python. {{{
 if !has("python")
@@ -57,6 +57,7 @@ class PyREPL(object):
         self.locals_ = {}
         self.block = []
         self.in_block = False
+        self.string_block = False
     
     def redirect_stdout(self):
         self.old_stdout = sys.stdout
@@ -65,9 +66,34 @@ class PyREPL(object):
     def restore_stdout(self):
         sys.stdout = self.old_stdout
 
-    def update_path(self):
-        if os.getcwd() not in sys.path:
-            sys.path.append(os.getcwd())
+    def count_char(self, line, char):
+        """Counts the number of occurences of char from the beginning of
+        the line to the first non-char character in the line."""
+        count = 0
+        for i, c in enumerate(line):
+            if c != char:
+                break
+            count += 1
+        return count
+
+    def clear_lines(self):
+        "Deletes all the lines below the current one."
+        vim.command("normal! jdG")
+
+    def duplicate_line(self):
+        "Copies the current line to the end of the buffer."
+        vim.command("normal! yyGp")
+
+    def has_ts_literal(self, string):
+        "Returns True if string contains a triple-quote literal."
+        return '"""' in string or "'''" in string
+
+    def insert_prompt(self, block=False):
+        "Inserts a prompt at the end of the buffer."
+        vim.current.buffer.append(
+            "... " if block else ">>> "
+        )
+        vim.command("normal! G$")
 
     def reload_module(self):
         "Asks for the name of a module and tries to reload it."
@@ -79,9 +105,15 @@ class PyREPL(object):
         ))
         self.read_line()
 
-    def duplicate_line(self):
-        "Copies the current line to the end of the buffer."
-        vim.command("normal! yyGp")
+    def strip_line(self, line):
+        "Strips the line of trailing whitespace."
+        if self.count_char(line, " ") != len(line):
+            return line.rstrip()
+        return line
+
+    def update_path(self):
+        if os.getcwd() not in sys.path:
+            sys.path.append(os.getcwd())
 
     def eval(self, string, mode="single"):
         """Compiles then evals a given string of code and redirects the
@@ -102,32 +134,19 @@ class PyREPL(object):
                 vim.current.buffer.append(line)
         self.insert_prompt()
 
-    def count_char(self, line, char):
-        """Counts the number of occurences of char from the beginning of
-        the line to the first non-char character in the line."""
-        count = 0
-        for i, c in enumerate(line):
-            if c != char:
-                break
-            count += 1
-        return count
+    def eval_block(self):
+        "Evaluates the current block."
+        self.eval("\n".join(self.block), "exec")
+        self.block = []
+        self.in_block = False
+        self.string_block = False
 
-    def clear_lines(self):
-        "Deletes all the lines below the current one."
-        vim.command("normal! jdG")
-
-    def strip_line(self, line):
-        "Strips the line of trailing whitespace."
-        if self.count_char(line, " ") != len(line):
-            return line.rstrip()
-        return line
-
-    def insert_prompt(self, block=False):
-        "Inserts a prompt at the end of the buffer."
-        vim.current.buffer.append(
-            "... " if block else ">>> "
-        )
-        vim.command("normal! G$")
+    def block_append(self, line, prompt=True):
+        "Appends a line to the current block."
+        self.block.append(line)
+        self.clear_lines()
+        if prompt:
+            self.insert_prompt(True)
 
     def read_block(self, line):
         "Reads a block to a string line by line."
@@ -135,17 +154,25 @@ class PyREPL(object):
             if line[-1] in (":", "\\")\
             or line.startswith("@"):
                 self.in_block = True
+            if not self.string_block\
+            and self.has_ts_literal(line):
+                self.string_block = True
+                self.in_block = True
+                self.block_append(line)
+                return True
         except IndexError:
             pass
         if self.in_block:
-            if not line:
-                self.eval("\n".join(self.block), "exec")
-                self.block = []
-                self.in_block = False
-                return False
-            self.block.append(line)
-            self.clear_lines()
-            self.insert_prompt(True)
+            if self.string_block and not line:
+                self.block_append("")
+                return True
+            if self.has_ts_literal(line):
+                self.block_append(line, False)
+                self.eval_block()
+            elif line:
+                self.block_append(line)
+            else:
+                self.eval_block()
             return True
         return False
 
