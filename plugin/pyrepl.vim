@@ -40,7 +40,6 @@ let g:pyrepl_version = "0.1.5"
 " }}}
 " Check for +python. {{{
 if !has("python")
-    echo("Error: PyREPL requires vim compiled with +python.")
     finish
 endif
 " }}}
