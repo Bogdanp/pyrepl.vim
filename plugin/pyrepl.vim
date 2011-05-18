@@ -103,12 +103,16 @@ class PyREPL(object):
 
     def reload_module(self):
         "Asks for the name of a module and tries to reload it."
-        if vim.current.line not in (">>> ", "... "):
+        if vim.current.line not in (">>>  ", "...  "):
             self.clear_lines()
             self.insert_prompt()
-        vim.command("normal! A{0} = reload({0})".format(
-            vim.eval("input('Module to reload: ')")
-        ))
+            vim.command("normal! i{0} = reload({0})".format(
+                vim.eval("input('Module to reload: ')")
+            ))
+        else:
+            vim.command("normal! a{0} = reload({0})".format(
+                vim.eval("input('Module to reload: ')")
+            ))
         self.read_line()
 
     def strip_line(self, line):
