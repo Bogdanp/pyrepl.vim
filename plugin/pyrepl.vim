@@ -226,7 +226,8 @@ fun! s:StartREPL()
     imap <buffer><silent><S-CR> :python pyrepl.duplicate_line()<CR>$
     map  <buffer><silent><CR> :python pyrepl.read_line()<CR>
     imap <buffer><silent><CR> :python pyrepl.read_line()<CR>
-    normal! i>>> $
+    normal! i>>>  $
+    startinsert
     echo("PyREPL started.")
 endfun
 
