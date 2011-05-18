@@ -1,6 +1,6 @@
 " =======================================================================
 " File:        pyrepl.vim
-" Version:     0.1.6
+" Version:     0.1.7
 " Description: Vim plugin that provides a Python REPL inside a buffer.
 " Maintainer:  Bogdan Popa <popa.bogdanp@gmail.com>
 " License:     Copyright (C) 2011 Bogdan Popa
@@ -93,11 +93,26 @@ class PyREPL(object):
             return self.tq_literal in string
         return '"""' in string or "'''" in string
 
+    def match_indentation(self):
+        try:
+            previous_line = self.block[-1]
+            if not previous_line: return ""
+        except IndexError:
+            return ""
+        indent_level = self.count_char(previous_line, " ")
+        if previous_line[-1] == ":":
+            return "{0}    ".format(" " * indent_level)
+        else:
+            return " " * indent_level
+
     def insert_prompt(self, block=False):
         "Inserts a prompt at the end of the buffer."
-        vim.current.buffer.append(
-            "...  " if block else ">>>  "
-        )
+        if block:
+            vim.current.buffer.append(
+                "... {0} ".format(self.match_indentation())
+            )
+        else:
+            vim.current.buffer.append(">>>  ")
         vim.command("normal! G$")
         vim.command("startinsert")
 
