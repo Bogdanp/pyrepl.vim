@@ -1,6 +1,6 @@
 " =======================================================================
 " File:        pyrepl.vim
-" Version:     0.1.5
+" Version:     0.1.6
 " Description: Vim plugin that provides a Python REPL inside a buffer.
 " Maintainer:  Bogdan Popa <popa.bogdanp@gmail.com>
 " License:     Copyright (C) 2011 Bogdan Popa
@@ -31,17 +31,10 @@
 " ======================================================================
 
 " Exit if already loaded or compatible mode is set. {{{
-if exists("g:pyrepl_version") || &cp
+if exists("g:pyrepl_loaded") || &cp || !has("python")
     finish
 endif
-
-" Version number
-let g:pyrepl_version = "0.1.5"
-" }}}
-" Check for +python. {{{
-if !has("python")
-    finish
-endif
+let g:pyrepl_loaded = 1
 " }}}
 " Main code in Python. {{{
 python <<EOF
@@ -67,8 +60,8 @@ class PyREPL(object):
         sys.stdout = self.old_stdout
 
     def count_char(self, line, char):
-        """Counts the number of occurences of char from the beginning of
-        the line to the first non-char character in the line."""
+        """Counts the number of occurences of char at the beginning of
+        the line."""
         count = 0
         for i, c in enumerate(line):
             if c != char:
@@ -103,9 +96,10 @@ class PyREPL(object):
     def insert_prompt(self, block=False):
         "Inserts a prompt at the end of the buffer."
         vim.current.buffer.append(
-            "... " if block else ">>> "
+            "...  " if block else ">>>  "
         )
         vim.command("normal! G$")
+        vim.command("startinsert")
 
     def reload_module(self):
         "Asks for the name of a module and tries to reload it."
@@ -185,7 +179,7 @@ class PyREPL(object):
                 self.block_append()
             return True
         if self.in_block:
-            if line:
+            if line and line != " ":
                 self.block_append(line)
             else:
                 self.eval_block()
@@ -226,8 +220,8 @@ fun! s:StartREPL()
     map  <buffer><leader>R :python pyrepl.reload_module()<CR>
     map  <buffer><silent><S-CR> :python pyrepl.duplicate_line()<CR>$
     imap <buffer><silent><S-CR> :python pyrepl.duplicate_line()<CR>$
-    map  <buffer><silent><CR> :python pyrepl.read_line()<CR>$
-    imap <buffer><silent><CR> :python pyrepl.read_line()<CR>$
+    map  <buffer><silent><CR> :python pyrepl.read_line()<CR>
+    imap <buffer><silent><CR> :python pyrepl.read_line()<CR>
     normal! i>>> $
     echo("PyREPL started.")
 endfun
