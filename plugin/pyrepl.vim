@@ -1,6 +1,6 @@
 " =======================================================================
 " File:        pyrepl.vim
-" Version:     0.1.7
+" Version:     0.1.8
 " Description: Vim plugin that provides a Python REPL inside a buffer.
 " Maintainer:  Bogdan Popa <popa.bogdanp@gmail.com>
 " License:     Copyright (C) 2011 Bogdan Popa
@@ -100,7 +100,9 @@ class PyREPL(object):
         except IndexError:
             return ""
         indent_level = self.count_char(previous_line, " ")
-        if previous_line[-1] == ":":
+        if previous_line == " " * indent_level:
+            return " " * (indent_level - 1)
+        elif previous_line[-1] == ":":
             return "{0}    ".format(" " * indent_level)
         else:
             return " " * indent_level
