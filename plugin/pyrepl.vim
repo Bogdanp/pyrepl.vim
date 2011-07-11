@@ -1,6 +1,6 @@
 " =======================================================================
 " File:        pyrepl.vim
-" Version:     0.1.8
+" Version:     0.1.9
 " Description: Vim plugin that provides a Python REPL inside a buffer.
 " Maintainer:  Bogdan Popa <popa.bogdanp@gmail.com>
 " License:     Copyright (C) 2011 Bogdan Popa
@@ -236,6 +236,7 @@ endfun
 
 fun! s:StartREPL()
     enew
+    setl buftype=nofile
     setl ft=python
     setl noai nocin nosi inde=
     map  <buffer><leader>R :python pyrepl.reload_module()<CR>
