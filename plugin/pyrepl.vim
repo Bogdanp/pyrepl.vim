@@ -1,6 +1,6 @@
 " =======================================================================
 " File:        pyrepl.vim
-" Version:     0.2.0
+" Version:     0.2.1
 " Description: Vim plugin that provides a Python REPL inside a buffer.
 " Maintainer:  Bogdan Popa <popa.bogdanp@gmail.com>
 " License:     Copyright (C) 2011 Bogdan Popa
@@ -176,6 +176,16 @@ class PyREPL(object):
         self.string_block = False
         self.tq_literal = None
 
+    def eval_file(self, filename):
+        "Evaluates the file at the given path."
+        try:
+            with open(filename) as file_:
+                self.redirect_stdout()
+                self.eval(file_.read(), "exec")
+                self.restore_stdout()
+        except IOError, e:
+            pass
+
     def block_append(self, line="", prompt=True):
         "Appends a line to the current block."
         self.block.append(line)
@@ -256,6 +266,12 @@ fun! s:StartREPL()
     echo("PyREPL started.")
 endfun
 
+fun! s:StartREPLWithFile()
+    let s:filename = expand('%')
+    call s:StartREPL()
+    python pyrepl.eval_file(vim.eval("s:filename"))
+endfun
+
 fun! s:StopREPL()
     map  <buffer><silent><S-CR> <S-CR>
     imap <buffer><silent><S-CR> <S-CR>
@@ -266,6 +282,7 @@ endfun
 
 " Expose the Toggle function publicly.
 command! -nargs=0 PyREPLToggle call s:ToggleREPL()
+command! -nargs=0 PyREPLEvalFile call s:StartREPLWithFile()
 " }}}
 
 " vim:fdm=marker
