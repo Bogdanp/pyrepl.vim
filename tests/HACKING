@@ -1,0 +1,3 @@
+* All command files must end in CRLF. To acheive this in VIM, add a ^M
+(C-v<CR>) to the end of the file then save it.
+* Every 'command.vim' file must have a matching 'command_output' file.
