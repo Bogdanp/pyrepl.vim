@@ -1,6 +1,6 @@
 " =======================================================================
 " File:        pyrepl.vim
-" Version:     0.1.9
+" Version:     0.2.0
 " Description: Vim plugin that provides a Python REPL inside a buffer.
 " Maintainer:  Bogdan Popa <popa.bogdanp@gmail.com>
 " License:     Copyright (C) 2011 Bogdan Popa
@@ -40,6 +40,7 @@ let g:pyrepl_loaded = 1
 python <<EOF
 import cStringIO
 import os
+import re
 import sys
 import traceback
 import vim
@@ -132,11 +133,17 @@ class PyREPL(object):
             ))
         self.read_line()
 
+    def is_whitespace(self, string):
+        "Returns true if the string is comprised by spaces."
+        return self.count_char(string, " ") == len(string)
+
     def strip_line(self, line):
-        "Strips the line of trailing whitespace."
-        if self.count_char(line, " ") != len(line):
-            return line.rstrip()
-        return line
+        """Strips the line of its prompt and any trailing whitespace
+        there might be."""
+        line = re.sub(r"^(>>>|\.\.\.)\s?", "", line)
+        if self.is_whitespace(line) and self.in_block:
+            return line
+        return line.rstrip()
 
     def update_path(self):
         if os.getcwd() not in sys.path:
@@ -211,7 +218,7 @@ class PyREPL(object):
         "Parses the current line for evaluation."
         self.redirect_stdout()
         self.update_path()
-        line = self.strip_line(vim.current.line[4:])
+        line = self.strip_line(vim.current.line)
         if not self.read_block(line) and line:
             self.eval(line)
         self.restore_stdout()
